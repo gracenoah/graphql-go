@@ -11,10 +11,6 @@ type Time struct {
 	time.Time
 }
 
-func (Time) ImplementsGraphQLType(name string) bool {
-	return name == "Time"
-}
-
 func (t *Time) UnmarshalGraphQL(input interface{}) error {
 	switch input := input.(type) {
 	case time.Time:

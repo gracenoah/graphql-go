@@ -179,7 +179,7 @@ func (b *execBuilder) makeExec(t common.Type, resolverType reflect.Type) (Resolv
 
 func makeScalarExec(t *schema.Scalar, resolverType reflect.Type) (Resolvable, error) {
 	implementsType := false
-	switch r := reflect.New(resolverType).Interface().(type) {
+	switch reflect.New(resolverType).Interface().(type) {
 	case *int32:
 		implementsType = (t.Name == "Int")
 	case *float64:
@@ -189,7 +189,7 @@ func makeScalarExec(t *schema.Scalar, resolverType reflect.Type) (Resolvable, er
 	case *bool:
 		implementsType = (t.Name == "Boolean")
 	case packer.Unmarshaler:
-		implementsType = r.ImplementsGraphQLType(t.Name)
+		implementsType = resolverType.Name() == t.Name
 	}
 	if !implementsType {
 		return nil, fmt.Errorf("can not use %s as %s", resolverType, t.Name)
