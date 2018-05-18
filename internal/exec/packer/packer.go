@@ -9,6 +9,7 @@ import (
 	"github.com/graph-gophers/graphql-go/errors"
 	"github.com/graph-gophers/graphql-go/internal/common"
 	"github.com/graph-gophers/graphql-go/internal/schema"
+	"github.com/graph-gophers/graphql-go/scalar"
 )
 
 type packer interface {
@@ -102,8 +103,17 @@ func (b *Builder) makePacker(schemaType common.Type, reflectType reflect.Type) (
 }
 
 func (b *Builder) makeNonNullPacker(schemaType common.Type, reflectType reflect.Type) (packer, error) {
-	if u, ok := reflect.New(reflectType).Interface().(Unmarshaler); ok {
+	if u, ok := reflect.New(reflectType).Interface().(scalar.NamedCustom); ok {
 		if !u.ImplementsGraphQLType(schemaType.String()) {
+			return nil, fmt.Errorf("can not unmarshal %s into %s", schemaType, reflectType)
+		}
+		return &unmarshalerPacker{
+			ValueType: reflectType,
+		}, nil
+	}
+
+	if _, ok := reflect.New(reflectType).Interface().(scalar.Custom); ok {
+		if reflectType.Name() != schemaType.String() {
 			return nil, fmt.Errorf("can not unmarshal %s into %s", schemaType, reflectType)
 		}
 		return &unmarshalerPacker{
@@ -310,20 +320,23 @@ func (p *unmarshalerPacker) Pack(value interface{}) (reflect.Value, error) {
 	}
 
 	v := reflect.New(p.ValueType)
-	if err := v.Interface().(Unmarshaler).UnmarshalGraphQL(value); err != nil {
+	if err := v.Interface().(scalar.Custom).UnmarshalGraphQL(value); err != nil {
 		return reflect.Value{}, err
 	}
 	return v.Elem(), nil
 }
 
-type Unmarshaler interface {
-	ImplementsGraphQLType(name string) bool
-	UnmarshalGraphQL(input interface{}) error
-}
-
 func unmarshalInput(typ reflect.Type, input interface{}) (interface{}, error) {
 	if reflect.TypeOf(input) == typ {
 		return input, nil
+	}
+
+	if u, ok := reflect.New(typ).Interface().(scalar.Custom); ok {
+		err := u.UnmarshalGraphQL(input)
+		if err != nil {
+			return nil, fmt.Errorf("unable to unmarshal input: %s", err)
+		}
+		return u, nil
 	}
 
 	switch typ.Kind() {
@@ -356,7 +369,7 @@ func unmarshalInput(typ reflect.Type, input interface{}) (interface{}, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("incompatible type")
+	return nil, fmt.Errorf("incompatible type for %s", typ)
 }
 
 func unwrapNonNull(t common.Type) (common.Type, bool) {

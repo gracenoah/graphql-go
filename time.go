@@ -34,3 +34,7 @@ func (t *Time) UnmarshalGraphQL(input interface{}) error {
 		return fmt.Errorf("wrong type")
 	}
 }
+
+func (t Time) String() string {
+	return t.Time.Format(time.RFC3339)
+}

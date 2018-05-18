@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"reflect"
+	"strconv"
 	"sync"
 
 	"github.com/graph-gophers/graphql-go/errors"
@@ -14,6 +15,7 @@ import (
 	"github.com/graph-gophers/graphql-go/internal/query"
 	"github.com/graph-gophers/graphql-go/internal/schema"
 	"github.com/graph-gophers/graphql-go/log"
+	"github.com/graph-gophers/graphql-go/scalar"
 	"github.com/graph-gophers/graphql-go/trace"
 )
 
@@ -268,9 +270,15 @@ func (r *Request) execSelectionSet(ctx context.Context, sels []selected.Selectio
 
 	case *schema.Scalar:
 		v := resolver.Interface()
-		data, err := json.Marshal(v)
-		if err != nil {
-			panic(errors.Errorf("could not marshal %v", v))
+		var data []byte
+		if strV, ok := v.(scalar.Custom); ok {
+			data = strconv.AppendQuote(nil, strV.String())
+		} else {
+			var err error
+			data, err = json.Marshal(v)
+			if err != nil {
+				panic(errors.Errorf("could not marshal %v: %s", v, err))
+			}
 		}
 		out.Write(data)
 

@@ -28,3 +28,7 @@ func (id *ID) UnmarshalGraphQL(input interface{}) error {
 func (id ID) MarshalJSON() ([]byte, error) {
 	return strconv.AppendQuote(nil, string(id)), nil
 }
+
+func (id ID) String() string {
+	return string(id)
+}

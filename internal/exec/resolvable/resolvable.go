@@ -9,6 +9,7 @@ import (
 	"github.com/graph-gophers/graphql-go/internal/common"
 	"github.com/graph-gophers/graphql-go/internal/exec/packer"
 	"github.com/graph-gophers/graphql-go/internal/schema"
+	"github.com/graph-gophers/graphql-go/scalar"
 )
 
 type Schema struct {
@@ -179,7 +180,15 @@ func (b *execBuilder) makeExec(t common.Type, resolverType reflect.Type) (Resolv
 
 func makeScalarExec(t *schema.Scalar, resolverType reflect.Type) (Resolvable, error) {
 	implementsType := false
-	switch r := reflect.New(resolverType).Interface().(type) {
+
+	var rawVal reflect.Value
+	if resolverType.Kind() == reflect.Ptr {
+		rawVal = reflect.New(resolverType.Elem())
+	} else {
+		rawVal = reflect.New(resolverType)
+	}
+
+	switch r := rawVal.Interface().(type) {
 	case *int32:
 		implementsType = (t.Name == "Int")
 	case *float64:
@@ -188,8 +197,10 @@ func makeScalarExec(t *schema.Scalar, resolverType reflect.Type) (Resolvable, er
 		implementsType = (t.Name == "String")
 	case *bool:
 		implementsType = (t.Name == "Boolean")
-	case packer.Unmarshaler:
+	case scalar.NamedCustom:
 		implementsType = r.ImplementsGraphQLType(t.Name)
+	case scalar.Custom:
+		implementsType = resolverType.Name() == t.Name
 	}
 	if !implementsType {
 		return nil, fmt.Errorf("can not use %s as %s", resolverType, t.Name)
