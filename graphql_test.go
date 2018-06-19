@@ -2,10 +2,12 @@ package graphql_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/graph-gophers/graphql-go"
+	"github.com/graph-gophers/graphql-go/errors"
 	"github.com/graph-gophers/graphql-go/example/starwars"
 	"github.com/graph-gophers/graphql-go/gqltesting"
 )
@@ -1773,6 +1775,191 @@ func TestComposedFragments(t *testing.T) {
 					}
 				}
 			`,
+		},
+	})
+}
+
+var exampleErrorString = "This is an error"
+var exampleError = fmt.Errorf(exampleErrorString)
+
+type errorringResolver1 struct{}
+
+func (r *errorringResolver1) TriggerError() (string, error) {
+	return "This will never be returned to the client", exampleError
+}
+func (r *errorringResolver1) NoError() string {
+	return "no error"
+}
+func (r *errorringResolver1) Child() *errorringResolver1 {
+	return &errorringResolver1{}
+}
+
+type nonFailingRoot struct{}
+
+func (r *nonFailingRoot) Child() *errorringResolver1 {
+	return &errorringResolver1{}
+}
+func (r *nonFailingRoot) NoError() string {
+	return "no error"
+}
+
+func TestErrorPropagation(t *testing.T) {
+	gqltesting.RunTests(t, []*gqltesting.Test{
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					noError: String!
+					triggerError: String!
+				}
+			`, &errorringResolver1{}),
+			Query: `
+				{
+					noError
+					triggerError
+				}
+			`,
+			ExpectedResult: `
+				null
+			`,
+			ExpectedErrors: []*errors.QueryError{
+				{
+					Message:       exampleErrorString,
+					ResolverError: exampleError,
+					Path:          []interface{}{"triggerError"},
+				},
+			},
+		},
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					noError: String!
+					child: Child
+				}
+
+				type Child {
+					noError: String!
+					triggerError: String!
+				}
+			`, &nonFailingRoot{}),
+			Query: `
+				{
+					noError
+					child {
+						noError
+						triggerError
+					}
+				}
+			`,
+			ExpectedResult: `
+				{
+					"noError": "no error",
+					"child": null
+				}
+			`,
+			ExpectedErrors: []*errors.QueryError{
+				{
+					Message:       exampleErrorString,
+					ResolverError: exampleError,
+					Path:          []interface{}{"child", "triggerError"},
+				},
+			},
+		},
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					noError: String!
+					child: Child
+				}
+
+				type Child {
+					noError: String!
+					triggerError: String!
+					child: Child!
+				}
+			`, &nonFailingRoot{}),
+			Query: `
+				{
+					noError
+					child {
+						noError
+						child {
+							noError
+							triggerError
+						}
+					}
+				}
+			`,
+			ExpectedResult: `
+				{
+					"noError": "no error",
+					"child": null
+				}
+			`,
+			ExpectedErrors: []*errors.QueryError{
+				{
+					Message:       exampleErrorString,
+					ResolverError: exampleError,
+					Path:          []interface{}{"child", "child", "triggerError"},
+				},
+			},
+		},
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					noError: String!
+					child: Child
+				}
+
+				type Child {
+					noError: String!
+					triggerError: String!
+					child: Child
+				}
+			`, &nonFailingRoot{}),
+			Query: `
+				{
+					noError
+					child {
+						noError
+						child {
+							noError
+							triggerError
+						}
+					}
+				}
+			`,
+			ExpectedResult: `
+				{
+					"noError": "no error",
+					"child": {
+						"noError": "no error",
+						"child": null
+					}
+				}
+			`,
+			ExpectedErrors: []*errors.QueryError{
+				{
+					Message:       exampleErrorString,
+					ResolverError: exampleError,
+					Path:          []interface{}{"child", "child", "triggerError"},
+				},
+			},
 		},
 	})
 }
