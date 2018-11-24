@@ -17,7 +17,7 @@ func (id *ID) UnmarshalGraphQL(input interface{}) error {
 	switch input := input.(type) {
 	case string:
 		*id = ID(input)
-	case int32:
+	case int:
 		*id = ID(strconv.Itoa(int(input)))
 	default:
 		err = errors.New("wrong type")

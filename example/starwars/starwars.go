@@ -278,7 +278,7 @@ func init() {
 }
 
 type review struct {
-	stars      int32
+	stars      int
 	commentary *string
 }
 
@@ -365,7 +365,7 @@ func (r *Resolver) CreateReview(args *struct {
 }
 
 type friendsConnectionArgs struct {
-	First *int32
+	First *int
 	After *graphql.ID
 }
 
@@ -536,7 +536,7 @@ type reviewResolver struct {
 	r *review
 }
 
-func (r *reviewResolver) Stars() int32 {
+func (r *reviewResolver) Stars() int {
 	return r.r.stars
 }
 
@@ -579,8 +579,8 @@ func newFriendsConnectionResolver(ids []graphql.ID, args friendsConnectionArgs) 
 	}, nil
 }
 
-func (r *friendsConnectionResolver) TotalCount() int32 {
-	return int32(len(r.ids))
+func (r *friendsConnectionResolver) TotalCount() int {
+	return len(r.ids)
 }
 
 func (r *friendsConnectionResolver) Edges() *[]*friendsEdgeResolver {
@@ -642,6 +642,6 @@ func (r *pageInfoResolver) HasNextPage() bool {
 }
 
 type reviewInput struct {
-	Stars      int32
+	Stars      int
 	Commentary *string
 }

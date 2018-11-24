@@ -27,7 +27,7 @@ func (lit *BasicLit) Value(vars map[string]interface{}) interface{} {
 		if err != nil {
 			panic(err)
 		}
-		return int32(value)
+		return int(value)
 
 	case scanner.Float:
 		value, err := strconv.ParseFloat(lit.Text, 64)

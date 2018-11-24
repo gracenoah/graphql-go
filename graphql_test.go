@@ -46,14 +46,14 @@ func (r *helloSnakeResolver2) SayHello(ctx context.Context, args struct{ FullNam
 }
 
 type theNumberResolver struct {
-	number int32
+	number int
 }
 
-func (r *theNumberResolver) TheNumber() int32 {
+func (r *theNumberResolver) TheNumber() int {
 	return r.number
 }
 
-func (r *theNumberResolver) ChangeTheNumber(args struct{ NewNumber int32 }) *theNumberResolver {
+func (r *theNumberResolver) ChangeTheNumber(args struct{ NewNumber int }) *theNumberResolver {
 	r.number = args.NewNumber
 	return r
 }
@@ -324,15 +324,15 @@ func TestBasic(t *testing.T) {
 
 type testNilInterfaceResolver struct{}
 
-func (r *testNilInterfaceResolver) A() interface{ Z() int32 } {
+func (r *testNilInterfaceResolver) A() interface{ Z() int } {
 	return nil
 }
 
-func (r *testNilInterfaceResolver) B() (interface{ Z() int32 }, error) {
+func (r *testNilInterfaceResolver) B() (interface{ Z() int }, error) {
 	return nil, errors.New("x")
 }
 
-func (r *testNilInterfaceResolver) C() (interface{ Z() int32 }, error) {
+func (r *testNilInterfaceResolver) C() (interface{ Z() int }, error) {
 	return nil, nil
 }
 
@@ -857,15 +857,15 @@ func TestIncludeDirective(t *testing.T) {
 
 type testDeprecatedDirectiveResolver struct{}
 
-func (r *testDeprecatedDirectiveResolver) A() int32 {
+func (r *testDeprecatedDirectiveResolver) A() int {
 	return 0
 }
 
-func (r *testDeprecatedDirectiveResolver) B() int32 {
+func (r *testDeprecatedDirectiveResolver) B() int {
 	return 0
 }
 
-func (r *testDeprecatedDirectiveResolver) C() int32 {
+func (r *testDeprecatedDirectiveResolver) C() int {
 	return 0
 }
 
@@ -1783,7 +1783,7 @@ func TestTime(t *testing.T) {
 
 type resolverWithUnexportedMethod struct{}
 
-func (r *resolverWithUnexportedMethod) changeTheNumber(args struct{ NewNumber int32 }) int32 {
+func (r *resolverWithUnexportedMethod) changeTheNumber(args struct{ NewNumber int }) int {
 	return args.NewNumber
 }
 
@@ -1804,7 +1804,7 @@ func TestUnexportedMethod(t *testing.T) {
 
 type resolverWithUnexportedField struct{}
 
-func (r *resolverWithUnexportedField) ChangeTheNumber(args struct{ newNumber int32 }) int32 {
+func (r *resolverWithUnexportedField) ChangeTheNumber(args struct{ newNumber int }) int {
 	return args.newNumber
 }
 
@@ -1869,7 +1869,7 @@ func (e *IntEnum) UnmarshalGraphQL(input interface{}) error {
 
 type inputResolver struct{}
 
-func (r *inputResolver) Int(args struct{ Value int32 }) int32 {
+func (r *inputResolver) Int(args struct{ Value int }) int {
 	return args.Value
 }
 
@@ -1885,23 +1885,23 @@ func (r *inputResolver) Boolean(args struct{ Value bool }) bool {
 	return args.Value
 }
 
-func (r *inputResolver) Nullable(args struct{ Value *int32 }) *int32 {
+func (r *inputResolver) Nullable(args struct{ Value *int }) *int {
 	return args.Value
 }
 
-func (r *inputResolver) List(args struct{ Value []*struct{ V int32 } }) []int32 {
-	l := make([]int32, len(args.Value))
+func (r *inputResolver) List(args struct{ Value []*struct{ V int } }) []int {
+	l := make([]int, len(args.Value))
 	for i, entry := range args.Value {
 		l[i] = entry.V
 	}
 	return l
 }
 
-func (r *inputResolver) NullableList(args struct{ Value *[]*struct{ V int32 } }) *[]*int32 {
+func (r *inputResolver) NullableList(args struct{ Value *[]*struct{ V int } }) *[]*int {
 	if args.Value == nil {
 		return nil
 	}
-	l := make([]*int32, len(*args.Value))
+	l := make([]*int, len(*args.Value))
 	for i, entry := range *args.Value {
 		if entry != nil {
 			l[i] = &entry.V
@@ -1946,8 +1946,8 @@ type recursive struct {
 	Next *recursive
 }
 
-func (r *inputResolver) Recursive(args struct{ Value *recursive }) int32 {
-	n := int32(0)
+func (r *inputResolver) Recursive(args struct{ Value *recursive }) int {
+	n := int(0)
 	v := args.Value
 	for v != nil {
 		v = v.Next

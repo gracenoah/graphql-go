@@ -327,15 +327,20 @@ func unmarshalInput(typ reflect.Type, input interface{}) (interface{}, error) {
 	}
 
 	switch typ.Kind() {
-	case reflect.Int32:
+	case reflect.Int, reflect.Int32:
 		switch input := input.(type) {
+		case int32:
+			if input < math.MinInt32 || input > math.MaxInt32 {
+				return nil, fmt.Errorf("not a 32-bit integer")
+			}
+			return input, nil
 		case int:
 			if input < math.MinInt32 || input > math.MaxInt32 {
 				return nil, fmt.Errorf("not a 32-bit integer")
 			}
-			return int32(input), nil
+			return input, nil
 		case float64:
-			coerced := int32(input)
+			coerced := int(input)
 			if input < math.MinInt32 || input > math.MaxInt32 || float64(coerced) != input {
 				return nil, fmt.Errorf("not a 32-bit integer")
 			}
